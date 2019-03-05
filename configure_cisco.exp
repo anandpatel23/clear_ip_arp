@@ -1,0 +1,50 @@
+#!/usr/bin/expect -f
+
+# set variables
+set hostname [lindex $argv 0]
+set username $env(USER)
+set password [lindex $argv 1]
+
+# Log results (double check path)
+log_file -a ~/results.log
+
+# Announce which device we are working on and at what time
+send_user "\n"
+send_user ">>>>> Working on $hostname @ [exec date] <<<<<\n"
+send_user "\n"
+
+# Don't check keys
+spawn ssh -o StrictHostKeyChecking=no $username\@$hostname
+
+# Allow this script to handle ssh connection issues
+expect {
+	timeout { send_user "\nTimeout Exceeded - Check Host\n"; exit 1 }
+	eof { send_user "\nSSH Connection To $hostname Failed\n"; exit 1 }
+	"*#" {}
+	"*assword:" { send "$password\n"}
+}
+
+# if not already in enable mode, go into enable mode
+expect {
+	default { send_user "\nEnable Mode Failed - Check Password\n"; exit 1}
+	"*#" {}
+	"*>" {
+		send "enable\n"
+		expect "*assword"
+		send "$password\n"
+		expect "*#"
+	}
+}
+
+# clear ip arp address
+send_user "Clearing IP ARP addresses...\n"
+send "clear ip arp XXX.XXX.XX.XXX"
+send "sho ip arp XXX.XXX.XX.XXX"
+expect "#"
+
+# end session
+send "write mem\n"
+expect "#"
+send "exit\n"
+expect ":~\$"
+exit
