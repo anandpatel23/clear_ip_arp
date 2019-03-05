@@ -1,0 +1,4 @@
+core1.mydomain.com
+nexus1a
+nexus1b
+10.0.0.1
